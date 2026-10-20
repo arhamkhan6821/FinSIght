@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinSight | Financial Analytics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>
+    window.chartData = {
+        income: {{ income|tojson }},
+        expenses: {{ expenses|tojson }},
+        categoryData: {{ category_data|tojson }},
+        monthlyData: {{ monthly_data|tojson }}
+    };
+</script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <aside class="sidebar">
+        <a class="brand" href="/">Fin<span>Sight</span><b>.</b></a>
+        <p class="nav-label">WORKSPACE</p>
+        <a class="nav-item active" href="/">▦ &nbsp; Overview</a>
+        <div class="sidebar-bottom">
+            <div class="avatar">FS</div>
+            <div><strong>Personal Finance</strong><small>Your money, in focus.</small></div>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="topbar">
+            <div><p class="eyebrow">FINANCIAL OVERVIEW</p><h1>Dashboard</h1></div>
+            <span class="date-pill">{{ today }}</span>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for category, message in messages %}
+            <div class="notice {{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endwith %}
+
+        <section class="stats">
+            <article class="stat-card balance-card">
+                <p>Total Balance</p>
+                <h2>{{ "%.2f"|format(balance) }}</h2>
+                <span>Income minus expenses</span>
+            </article>
+            <article class="stat-card">
+                <p>Total Income</p>
+                <h2 class="green">+ {{ "%.2f"|format(income) }}</h2>
+                <span>Across all transactions</span>
+            </article>
+            <article class="stat-card">
+                <p>Total Expenses</p>
+                <h2 class="red">− {{ "%.2f"|format(expenses) }}</h2>
+                <span>Across all transactions</span>
+            </article>
+        </section>
+
+        <section class="content-grid">
+            <article class="panel">
+                <div class="panel-heading"><div><p class="eyebrow">YOUR CASH FLOW</p><h3>Income vs. Expenses</h3></div></div>
+                <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+            </article>
+            <article class="panel">
+                <div class="panel-heading"><div><p class="eyebrow">SPENDING BREAKDOWN</p><h3>Where it goes</h3></div></div>
+                <div class="chart-wrap"><canvas id="categoryChart"></canvas></div>
+                {% if not category_data %}<p class="empty-hint">Add an expense to see your breakdown.</p>{% endif %}
+            </article>
+        </section>
+
+        <section class="panel add-panel">
+            <div class="panel-heading"><div><p class="eyebrow">RECORD YOUR MONEY</p><h3>Add a transaction</h3></div></div>
+            <form action="{{ url_for('add_transaction') }}" method="post" class="transaction-form">
+                <label>Description<input name="title" maxlength="100" placeholder="e.g. Monthly allowance" required></label>
+                <label>Amount<input name="amount" type="number" min="0.01" max="1000000000" step="0.01" placeholder="0.00" required></label>
+                <label>Type<select name="type" required><option value="expense">Expense</option><option value="income">Income</option></select></label>
+                <label>Category<select name="category" required>{% for category in categories %}<option value="{{ category }}">{{ category }}</option>{% endfor %}</select></label>
+                <label>Date<input name="transaction_date" type="date" value="{{ today }}" required></label>
+                <button type="submit">+ Add transaction</button>
+            </form>
+        </section>
+
+        <section class="panel history-panel">
+            <div class="panel-heading"><div><p class="eyebrow">YOUR RECORDS</p><h3>Recent transactions</h3></div><span class="count">{{ transactions|length }} records</span></div>
+            {% if transactions %}
+            <div class="table-scroll"><table>
+               <th>AMOUNT</th><th>ACTION</th></tr></thead>
+<tbody>
+{% for transaction in transactions %}
+<tr>
+    <td>{{ transaction.description }}</td>
+    <td><span class="category-tag">{{ transaction.category }}</span></td>
+    <td>{{ transaction.date }}</td>
+    <td class="{{ 'income' if transaction.type == 'income' else 'expense' }}">
+        {{ '+' if transaction.type == 'income' else '-' }}${{ "%.2f"|format(transaction.amount) }}
+    </td>
+    <td>
+        <form action="{{ url_for('delete_transaction', transaction_id=transaction.id) }}" method="POST">
+            <button type="submit" class="delete-btn">Delete</button>
+        </form>
+    </td>
+</tr>
+{% endfor %}
+</tbody>
+</table></div>
+{% else %}
+<div class="empty-state">
+    <h4>No transactions yet</h4>
+    <p>Add your first transaction to start tracking your finances.</p>
+</div>
+{% endif %}
+</section>
+</div>
+</main>
+<script>
+    window.chartData = {
+        income: {{ income|tojson }},
+        expenses: {{ expenses|tojson }},
+        categoryData: {{ category_data|tojson }},
+        monthlyData: {{ monthly_data|tojson }}
+    };
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
